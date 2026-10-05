@@ -69,3 +69,20 @@ npm run build
   `frontend/src/data/seed.ts`。
 - 状态流转只允许在 `local-service.ts` 里改，页面组件不做业务判断。
 - 想回到初始数据：清掉浏览器里 `drainage-pump:entries` 这一项，或调用 `resetModule(模块)`。
+
+## 水位读数批量导入
+
+水位监测页提供 CSV 批量导入通道（页面上「批量导入水位读数」，模板可下载）：
+
+- 文件列固定为 `监测编号,水位读数,采集时间,监测人`（监测人可留空，默认当前值班人）；
+  不接受警戒水位列，警戒线按点位在台账上预置，导入只写读数。
+- 监测编号在点位台账中对不上、读数非数字、时间无法识别的**整行退回**，结果里指明文件行号。
+- 同一监测编号同一采集时间重复导入（文件内重复或与已入库读数重复）只保留一条。
+- 读数严格大于预置警戒水位即越限：表格与结果中单独标出，并按时间序列切分越限时段、
+  计算每次持续时长（到回落读数为止；最新读数仍越限则标记「未回落」）。
+- 导入完成后点位状态由「待采集」转为「已采集」；本次文件未覆盖的点位在结果中逐个点名。
+- 读数时序独立存于 `localStorage` 的 `drainage-pump:waterlevel-readings`，
+  点位表格的水位读数可点击查看该点位全部读数明细。
+- 纯函数核心在 `frontend/src/api/waterlevel-import.ts` 的 `evaluateWaterLevelImport`，
+  换回后端时可直接平移入参/出参；校验脚本：
+  `node --experimental-loader ./scripts/ts-loader.mjs scripts/test-import.ts`。
